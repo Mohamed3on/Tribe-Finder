@@ -97,7 +97,6 @@ const processUser = (user) => {
 };
 
 const run = async () => {
-  console.time('fetching data');
   try {
     const screen_name = await readLocalStorage('twitterHandle');
     const getPopularFriendsLocations = async () => {
@@ -123,9 +122,10 @@ const run = async () => {
 
       if (!userLists.length) {
         console.log('No user lists found.');
-        return;
+        return true; // Consider this a successful run if there are no lists
       }
-      await Promise.allSettled(
+
+      const listResults = await Promise.allSettled(
         userLists.map(async (list) => {
           try {
             const listMembers = await fetchListMembers(list.id_str);
@@ -157,15 +157,17 @@ const run = async () => {
       );
 
       console.log(`fetched ${userData.userListData.length} lists`);
+
+      // Check if all lists were processed successfully
+      return listResults.every((result) => result.status === 'fulfilled');
     };
 
-    await getPopularFriendsLocations();
+    const allListsProcessed = await getPopularFriendsLocations();
+    return allListsProcessed; // Return the success status
   } catch (error) {
     console.log('Error fetching data:', error);
     throw error;
   }
-
-  console.timeEnd('fetching data');
 };
 
 (async () => {
@@ -190,16 +192,20 @@ const run = async () => {
   }
 
   try {
-    await run();
-    lastAutoRefreshObj[screen_name] = new Date().toISOString();
-    chrome.storage.local.set(
-      {
-        lastAutoRefresh: lastAutoRefreshObj,
-      },
-      function () {
-        console.log(`Auto-refresh time updated for ${screen_name} in local storage.`);
-      }
-    );
+    const allListsProcessed = await run();
+    if (allListsProcessed) {
+      lastAutoRefreshObj[screen_name] = new Date().toISOString();
+      chrome.storage.local.set(
+        {
+          lastAutoRefresh: lastAutoRefreshObj,
+        },
+        function () {
+          console.log(`Auto-refresh time updated for ${screen_name} in local storage.`);
+        }
+      );
+    } else {
+      console.log('Not all lists were processed successfully. Will retry later.');
+    }
   } catch (error) {
     console.log('error, user probably private or does not exist', error);
   }
