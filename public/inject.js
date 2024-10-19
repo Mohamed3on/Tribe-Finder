@@ -185,8 +185,8 @@ const run = async () => {
     const today = new Date();
     const hourDiff = Math.abs(today - lastAutoRefreshDate) / 36e5;
 
-    if (hourDiff < 24) {
-      console.log(`Last auto refresh for ${screen_name} was less than 24 hours ago, aborting...`);
+    if (hourDiff < 1) {
+      console.log(`Last auto refresh for ${screen_name} was less than 1 hour ago, aborting...`);
       return;
     }
   }
