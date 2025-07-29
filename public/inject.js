@@ -96,6 +96,28 @@ const processUser = (user) => {
   };
 };
 
+const isUserInactive = (lastTweetTime) => {
+  if (!lastTweetTime) return true; // Consider users with no tweets as inactive
+
+  const lastTweet = new Date(lastTweetTime);
+  const now = new Date();
+  const monthsDiff =
+    (now.getFullYear() - lastTweet.getFullYear()) * 12 + (now.getMonth() - lastTweet.getMonth());
+
+  return monthsDiff > 6;
+};
+
+const printInactiveUsers = async (listName, inactiveUsers) => {
+  console.log(`Found ${inactiveUsers.length} inactive users from list "${listName}"`);
+  console.table(
+    inactiveUsers.map((user) => ({
+      screen_name: user.screen_name,
+      id: user.id,
+      last_tweet: user.last_tweet_time,
+    }))
+  );
+};
+
 const run = async () => {
   try {
     const screen_name = await readLocalStorage('twitterHandle');
@@ -129,6 +151,16 @@ const run = async () => {
         userLists.map(async (list) => {
           try {
             const listMembers = await fetchListMembers(list.id_str);
+
+            const inactiveUsers = listMembers.users
+              .map(processUser)
+              .filter((user) => isUserInactive(user.last_tweet_time));
+
+            if (inactiveUsers.length) {
+              await printInactiveUsers(list.name, inactiveUsers);
+            } else {
+              console.log(`No inactive users found in list ${list.name}`);
+            }
 
             const userDataObject = {
               name: list.name,

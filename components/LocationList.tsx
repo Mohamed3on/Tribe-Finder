@@ -50,7 +50,7 @@ export const LocationList = () => {
 
       <ListsSection />
 
-      <ul className='grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3 max-w-screen-xl'>
+      <ul className='grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4'>
         {sortedLocations.map((location, index) => {
           const locationType = locationToTypeMapping?.[location.location];
           const percentage = Math.round(

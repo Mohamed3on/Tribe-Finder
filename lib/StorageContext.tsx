@@ -5,6 +5,7 @@ import { readLocalStorage } from '@/utils/localStorage';
 export const TwitterHandleContext = createContext({
   twitterHandle: '',
   setTwitterHandle: (twitterHandle: string) => {},
+  forceRefresh: () => {},
 });
 export const EnableListsContext = createContext({
   enableLists: false,
@@ -108,6 +109,32 @@ export const StorageProvider = ({ children }) => {
             dispatch({ type: 'SET_USER_DATA', payload: null });
             dispatch({ type: 'UPDATE_EXCLUDED_LISTS', payload: [] });
           }
+        },
+        forceRefresh: () => {
+          toast('Refreshing data...', {
+            description: 'Please do not close the open twitter tab in the meantime',
+            duration: 5000,
+            dismissible: true,
+          });
+          updateLocalStorage({
+            lastAutoRefresh: {},
+            userData: null,
+          });
+          dispatch({ type: 'SET_USER_DATA', payload: null });
+
+          // Force a refresh by creating a new Twitter tab
+          chrome.tabs.query({ currentWindow: true }, function (tabs) {
+            const allMatchingTabs = tabs.filter(
+              (tab) => tab.url?.includes('twitter.com') || tab.url?.includes('x.com')
+            );
+
+            if (allMatchingTabs.length > 0) {
+              const mostRecentTab = allMatchingTabs[allMatchingTabs.length - 1];
+              chrome.tabs.sendMessage(mostRecentTab.id, { message: 'refresh' });
+            } else {
+              chrome.tabs.create({ url: `https://x.com/`, active: false });
+            }
+          });
         },
       }}
     >
