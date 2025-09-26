@@ -1,19 +1,21 @@
 import { useTwitterHandleContext, useUserDataContext } from '@/lib/StorageContext';
-import { LoaderIcon } from 'lucide-react';
+import { LoaderIcon, RefreshCw } from 'lucide-react';
 import React, { useEffect } from 'react';
+import { Button } from './ui/button';
 
 export const Refresh = () => {
   const userData = useUserDataContext();
   const [refreshing, setRefreshing] = React.useState(true);
 
-  const { twitterHandle } = useTwitterHandleContext();
+  const { twitterHandle, forceRefresh } = useTwitterHandleContext();
   const [errorMessage, setErrorMessage] = React.useState('');
 
   useEffect(() => {
-    if (!userData)
+    if (!userData) {
+      setRefreshing(true);
       chrome.tabs.query({ currentWindow: true }, function (tabs) {
         const allMatchingTabs = tabs.filter(
-          (tab) => tab.url.includes('twitter.com') || tab.url.includes('x.com')
+          (tab) => tab.url?.includes('twitter.com') || tab.url?.includes('x.com')
         );
 
         if (allMatchingTabs.length > 0) {
@@ -33,32 +35,49 @@ export const Refresh = () => {
             });
           } catch (error) {
             console.log(error);
+            setErrorMessage('Something went wrong. Please try again.');
           }
         } else {
-          // runs inject.js to fetch the new data
           chrome.tabs.create({ url: `https://x.com/`, active: false });
         }
       });
+    } else {
+      setRefreshing(false);
+    }
   }, [twitterHandle, userData]);
+
+  const handleForceRefresh = () => {
+    setRefreshing(true);
+    setErrorMessage('');
+    forceRefresh();
+  };
 
   if (errorMessage) {
     return (
       <div className='flex items-center justify-center flex-col gap-7'>
         <h1 className='text-2xl font-bold text-center text-gray-400'>{errorMessage}</h1>
 
-        <h2 className='text-xl font-bold text-center text-gray-500'>
-          Head over to{' '}
-          <a
-            className='text-blue-500 hover:underline hover:text-blue-100 transition-colors ease-in-out'
-            href='#config'
-          >
-            config
-          </a>{' '}
-          to change the username
-        </h2>
+        <div className='flex flex-col gap-4 items-center'>
+          <Button onClick={handleForceRefresh} variant='outline' className='gap-2'>
+            <RefreshCw className='h-4 w-4' />
+            Try Again
+          </Button>
+
+          <h2 className='text-xl font-bold text-center text-gray-500'>
+            Or head over to{' '}
+            <a
+              className='text-blue-500 hover:underline hover:text-blue-100 transition-colors ease-in-out'
+              href='#config'
+            >
+              config
+            </a>{' '}
+            to change the username
+          </h2>
+        </div>
       </div>
     );
   }
+
   return refreshing ? (
     <div className='flex items-center justify-center flex-col gap-7'>
       <LoaderIcon className='w-16 h-16 text-gray-400 animate-spin' />
