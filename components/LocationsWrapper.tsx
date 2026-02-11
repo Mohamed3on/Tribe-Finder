@@ -15,7 +15,6 @@ export type User = {
   followers: number;
   avatar: string;
   bio?: string;
-  last_tweet_time?: string;
   id: string;
 };
 

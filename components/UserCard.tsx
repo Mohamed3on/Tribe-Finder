@@ -1,6 +1,6 @@
 import { User } from '@/components/LocationsWrapper';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import FormattedDate from '@/components/FormattedDate';
+
 import { Badge } from '@/components/ui/badge';
 
 type UserCardProps = {
@@ -63,11 +63,6 @@ export const UserCard = ({ user, userListData }: UserCardProps) => {
             })}
           </div>
         )}
-
-        <div className='text-xs flex items-center gap-1'>
-          <span className='text-gray-400'>Last tweet:</span>
-          <FormattedDate tweetTime={user.last_tweet_time} />
-        </div>
       </a>
     </div>
   );

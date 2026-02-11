@@ -18,18 +18,6 @@ const sortOptions = [
     label: 'Followers (Low to High)',
     sortFn: (a: User, b: User) => a.followers - b.followers,
   },
-  {
-    value: 'recent-tweet',
-    label: 'Most Recently Active',
-    sortFn: (a: User, b: User) =>
-      new Date(b.last_tweet_time).getTime() - new Date(a.last_tweet_time).getTime(),
-  },
-  {
-    value: 'oldest-tweet',
-    label: 'Least Recently Active',
-    sortFn: (a: User, b: User) =>
-      new Date(a.last_tweet_time).getTime() - new Date(b.last_tweet_time).getTime(),
-  },
 ];
 
 export const LocationDetails = ({ locationName }: { locationName?: string }) => {
