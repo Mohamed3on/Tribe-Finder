@@ -71,7 +71,7 @@ export const LocationsProvider: React.FC<{ children: React.ReactNode }> = React.
           });
         }
 
-        friends.forEach((friend) => {
+        (friends || []).forEach((friend) => {
           if (!usersMap[friend.screen_name]) {
             usersMap[friend.screen_name] = { ...friend, lists: [], isFriend: true };
           } else {

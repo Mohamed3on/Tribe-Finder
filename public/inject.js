@@ -59,6 +59,10 @@ const config = {
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms));
 
+const reportProgress = (progress) => {
+  chrome.storage.local.set({ fetchProgress: progress });
+};
+
 const getHeaders = () => {
   const ct0 = document.cookie.match(/ct0=([^;]+)/)?.[1];
   if (!ct0) throw new Error('No ct0 cookie found — are you logged in to X?');
@@ -245,25 +249,40 @@ const fetchFollowingList = async (userId) => {
 
 const run = async () => {
   try {
+    reportProgress({ phase: 'starting' });
     const screen_name = await readLocalStorage('twitterHandle');
     const userId = await resolveUserId(screen_name);
 
     let userData = {};
+    let friendsDone = false;
+    let listsDone = 0;
+    let listsTotal = 0;
+
+    const updateProgress = () => {
+      reportProgress({ phase: 'fetching', friendsDone, listsDone, listsTotal });
+    };
+
     console.log('fetching following list, user lists, and list members all in parallel...');
+    updateProgress();
 
     // Kick off following fetch (runs independently)
     const friendsPromise = fetchFollowingList(userId).then((raw) => {
       userData.friends = raw.map(processUser);
       chrome.storage.local.set({ userData });
+      friendsDone = true;
+      updateProgress();
       console.log(`Friend data saved (${userData.friends.length} users).`);
     });
 
-    // Kick off list discovery → immediately fan out member fetches per list
+    // Kick off list discovery → fan out member fetches with concurrency pool
     const listsPromise = fetchUserLists(userId).then((userLists) => {
       if (!userLists.length) {
         console.log('No user lists found.');
         return [];
       }
+      listsTotal = userLists.length;
+      updateProgress();
+
       return Promise.allSettled(
         userLists.map(async (list) => {
           const rawMembers = await fetchListMembers(list.id_str);
@@ -282,6 +301,8 @@ const run = async () => {
           });
 
           chrome.storage.local.set({ userData });
+          listsDone++;
+          updateProgress();
           console.log(`List "${list.name}" saved (${members.length} members).`);
         })
       );
@@ -292,10 +313,12 @@ const run = async () => {
 
     console.log(`fetched ${userData.userListData?.length ?? 0} lists`);
     chrome.storage.local.set({ userData });
+    reportProgress({ phase: 'done' });
 
     return !listResults?.length || listResults.every((r) => r.status === 'fulfilled');
   } catch (error) {
     console.log('Error fetching data:', error);
+    reportProgress({ phase: 'error', message: error.message });
     throw error;
   }
 };

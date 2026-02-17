@@ -9,6 +9,20 @@ export const Refresh = () => {
 
   const { twitterHandle, forceRefresh } = useTwitterHandleContext();
   const [errorMessage, setErrorMessage] = React.useState('');
+  const [progress, setProgress] = React.useState<any>(null);
+
+  useEffect(() => {
+    const handler = (changes: any, area: string) => {
+      if (area === 'local' && changes.fetchProgress) {
+        setProgress(changes.fetchProgress.newValue);
+      }
+    };
+    chrome.storage.onChanged.addListener(handler);
+    chrome.storage.local.get(['fetchProgress'], (r: any) => {
+      if (r.fetchProgress && r.fetchProgress.phase !== 'done') setProgress(r.fetchProgress);
+    });
+    return () => chrome.storage.onChanged.removeListener(handler);
+  }, []);
 
   useEffect(() => {
     if (!userData) {
@@ -85,6 +99,16 @@ export const Refresh = () => {
       <h1 className='text-2xl font-bold text-center text-gray-400'>
         Crunching the data for @{twitterHandle}, please wait
       </h1>
+
+      {progress?.phase === 'starting' && (
+        <p className='text-sm font-medium text-gray-500'>Resolving user...</p>
+      )}
+      {progress?.phase === 'fetching' && (
+        <p className='text-sm font-medium text-gray-500'>
+          {progress.friendsDone ? 'Following fetched' : 'Fetching following...'}
+          {progress.listsTotal > 0 && ` · Lists: ${progress.listsDone}/${progress.listsTotal}`}
+        </p>
+      )}
 
       <h2 className='text-xl font-bold text-center text-gray-500'>
         The more people you follow, the longer this may take
