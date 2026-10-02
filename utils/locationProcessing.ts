@@ -1,16 +1,23 @@
 import { emojiCountryCode } from 'country-code-emoji';
 
+// Whole words where a real place starts or contains the term (Homestead, Joinville, Freetown, Los Rios, Webster)
 export const irrelevantRegex = new RegExp(
-  'home|subscribe|\\.com|\\.net|\\.org|\\.eth|solana|sphere|zoom|join|sign up|ethereum|👉|newsletter|free|\\.ai|everywhere|online|⬇️|127\\.0\\.0\\.1|they\\/them|he\\/him|http|she\\/her|earth|worldwide|global|🟩|internet|ios|🌴|🍁|\\bhere\\b|\\d+°|🇪🇺|cloud|future|moon|web|network|remote|milky way|international|youtube|metaverse|monday|crypto|space|anywhere|beyond|utc|simulation\\b',
+  '\\bhome\\b|subscribe|\\.com|\\.net|\\.org|\\.eth|solana|sphere|zoom|\\bjoin\\b|sign up|ethereum|👉|newsletter|\\bfree\\b|\\.ai|everywhere|online|⬇️|127\\.0\\.0\\.1|http|earth|worldwide|global|🟩|internet|\\bios\\b|🌴|🍁|\\bhere\\b|\\d+°|cloud|future|\\bmoon\\b|\\bweb\\b|interweb|network|remote|milky way|international|youtube|metaverse|monday|crypto|space|anywhere|beyond|\\butc\\b|simulation\\b',
   'i'
 );
-export const removeRegex = new RegExp('europe|(?:the\\s+)?world|🌎|🌍|🌏|🌐|☁️|!', 'g');
+// Stripped rather than rejected: they sit next to real places ("Berlin 🇪🇺", "San Francisco, she/her")
+export const removeRegex = new RegExp(
+  'europe|(?:the\\s+)?world|🌎|🌍|🌏|🌐|☁️|🇪🇺|!|they\\/them|he\\/him|she\\/her',
+  'g'
+);
 
+// No `g` flag: these are used with .test(), which would carry lastIndex between calls
 export const uniqueLocationRegex = new RegExp(
   '\\b(alexandria|cambridge|victoria|san jose|venice|bend)\\b',
-  'gi'
+  'i'
 );
-export const coordsRegex = /-?\d+\.\d+,-?\d+\.\d+/g;
+export const coordsRegex = /-?\d+\.\d+,-?\d+\.\d+/;
+const dcRegex = /\bwashington,?\s*(?:d\.?\s?c\b\.?|district of columbia)/;
 
 export const processLocation = (location) => {
   const lowerCaseLocation = location.toLowerCase();
@@ -20,12 +27,10 @@ export const processLocation = (location) => {
     return null;
   }
 
-  // Remove specific terms
-  let processedLocation = lowerCaseLocation.replace(removeRegex, '');
-
-  if (processedLocation.includes('washington, ')) {
-    return ['washington dc'];
-  }
+  // Remove specific terms; collapse "Washington, D.C." so the comma split keeps it whole
+  let processedLocation = lowerCaseLocation
+    .replace(removeRegex, '')
+    .replace(dcRegex, 'washington dc');
 
   if (uniqueLocationRegex.test(processedLocation)) {
     return getLocationParts(processedLocation, false);
