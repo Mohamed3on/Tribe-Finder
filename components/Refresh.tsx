@@ -1,3 +1,4 @@
+import { useLocationContext } from '@/lib/LocationContext';
 import { useTwitterHandleContext, useUserDataContext } from '@/lib/StorageContext';
 import { LoaderIcon, RefreshCw } from 'lucide-react';
 import React, { useEffect } from 'react';
@@ -10,6 +11,7 @@ export const Refresh = () => {
   const { twitterHandle, forceRefresh } = useTwitterHandleContext();
   const [errorMessage, setErrorMessage] = React.useState('');
   const [progress, setProgress] = React.useState<any>(null);
+  const { resolveProgress } = useLocationContext();
 
   useEffect(() => {
     const handler = (changes: any, area: string) => {
@@ -92,7 +94,7 @@ export const Refresh = () => {
     );
   }
 
-  return refreshing ? (
+  return refreshing || resolveProgress ? (
     <div className='flex items-center justify-center flex-col gap-7'>
       <LoaderIcon className='w-16 h-16 text-gray-400 animate-spin' />
 
@@ -110,12 +112,21 @@ export const Refresh = () => {
         </p>
       )}
 
+      {resolveProgress && (
+        <p className='text-sm font-medium text-gray-500 tabular-nums'>
+          Placing locations · {resolveProgress.done.toLocaleString()}/
+          {resolveProgress.total.toLocaleString()}
+        </p>
+      )}
+
       <h2 className='text-xl font-bold text-center text-gray-500'>
         The more people you follow, the longer this may take
       </h2>
-      <div className='text-sm font-semibold text-red-500'>
-        Please don&apos;t close the open twitter tab!
-      </div>
+      {refreshing && (
+        <div className='text-sm font-semibold text-red-500'>
+          Please don&apos;t close the open twitter tab!
+        </div>
+      )}
     </div>
   ) : null;
 };

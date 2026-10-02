@@ -1,8 +1,7 @@
 /* eslint-disable react/display-name */
 import { User, UsersMap } from '@/components/LocationsWrapper';
 import { useEnableListsContext, useUserDataContext } from '@/lib/StorageContext';
-import { processLocations } from '@/utils/locationProcessing';
-import { getMappedLocations } from '@/utils/processLocations';
+import { ResolveProgress, resolveUserLocations } from '@/utils/resolveLocations';
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 
 export const LocationsContext = createContext<LocationsContextProps | null>(null);
@@ -33,6 +32,7 @@ export type LocationsContextProps = {
   numberOfFriends?: number;
   locationToTypeMapping?: { [key: string]: string };
   cityToCountryMapping?: { [key: string]: string };
+  resolveProgress?: ResolveProgress | null;
 };
 
 export const LocationsProvider: React.FC<{ children: React.ReactNode }> = React.memo(
@@ -44,6 +44,7 @@ export const LocationsProvider: React.FC<{ children: React.ReactNode }> = React.
     });
 
     const [users, setUsers] = useState<UsersMap>({});
+    const [resolveProgress, setResolveProgress] = useState<ResolveProgress | null>(null);
 
     const userData = useUserDataContext();
 
@@ -113,19 +114,14 @@ export const LocationsProvider: React.FC<{ children: React.ReactNode }> = React.
       const fetchData = async () => {
         try {
           if (Object.keys(users).length > 0) {
-            const processedLocations = processLocations(Object.values(users));
-
-            const filtered: { [key: string]: UsersMap } = Object.fromEntries(
-              Object.entries(processedLocations).filter(
-                ([, items]) => Object.keys(items).length > 1
-              )
-            ) as { [key: string]: UsersMap };
-
             const {
               mappedLocations: newLocations,
               locationToTypeMapping,
               cityToCountryMapping,
-            } = await getMappedLocations(filtered);
+            } = await resolveUserLocations(
+              Object.values(users),
+              (progress) => isMounted && setResolveProgress(progress)
+            ).finally(() => isMounted && setResolveProgress(null));
             if (newLocations && isMounted) {
               setDataWithProcessedLocations(
                 newLocations,
@@ -152,7 +148,7 @@ export const LocationsProvider: React.FC<{ children: React.ReactNode }> = React.
       };
     }, [setDataWithProcessedLocations, users]);
 
-    const contextValue = useMemo(() => ({ ...data }), [data]);
+    const contextValue = useMemo(() => ({ ...data, resolveProgress }), [data, resolveProgress]);
 
     return <LocationsContext.Provider value={contextValue}>{children}</LocationsContext.Provider>;
   }
