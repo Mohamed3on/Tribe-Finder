@@ -8,7 +8,11 @@ export type ResolveProgress = { done: number; total: number };
 
 const RESOLVE_URL = 'https://location-coords-cache.vercel.app/api/resolve';
 const BATCH_SIZE = 40;
+const CACHED_BATCH_SIZE = 150;
 const PARALLEL = 3;
+
+const chunk = <T,>(xs: T[], size: number) =>
+  Array.from({ length: Math.ceil(xs.length / size) }, (_, i) => xs.slice(i * size, (i + 1) * size));
 
 // Same-named places in different countries stay apart: "Cambridge, United Kingdom"
 const sameNamedPlaces = /\b(alexandria|cambridge|victoria|san jose|venice|bend)\b/i;
@@ -17,14 +21,18 @@ const sameNamedPlaces = /\b(alexandria|cambridge|victoria|san jose|venice|bend)\
 const cacheKey = (raw: string) =>
   `resolved:${raw.normalize('NFC').toLowerCase().replace(/\s+/g, ' ').trim()}`;
 
-const fetchBatch = async (batch: string[], attempt = 0): Promise<Record<string, Resolution>> => {
+const fetchBatch = async (
+  batch: string[],
+  cachedOnly = false,
+  attempt = 0
+): Promise<Record<string, Resolution>> => {
   const response = await fetch(RESOLVE_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ locations: batch }),
+    body: JSON.stringify({ locations: batch, cachedOnly }),
   });
   if (response.ok) return response.json();
-  if (attempt < 1) return fetchBatch(batch, attempt + 1);
+  if (attempt < 1) return fetchBatch(batch, cachedOnly, attempt + 1);
   throw new Error(`HTTP error! status: ${response.status}`);
 };
 
@@ -42,21 +50,31 @@ export const resolveUserLocations = async (
   const cached: { [key: string]: Resolution } = await chrome.storage.local.get(raws.map(cacheKey));
   const resolved: { [raw: string]: Resolution } = {};
   for (const raw of raws) if (cached[cacheKey(raw)]) resolved[raw] = cached[cacheKey(raw)];
-  const misses = raws.filter((raw) => !resolved[raw]);
+  const remember = (results: Record<string, Resolution>) =>
+    chrome.storage.local.set(
+      Object.fromEntries(Object.entries(results).map(([raw, r]) => [cacheKey(raw), (resolved[raw] = r)]))
+    );
 
   // Progress only when there is network work, so a warm cache never flashes a loader
+  let misses = raws.filter((raw) => !resolved[raw]);
+  if (misses.length) onProgress({ done: raws.length - misses.length, total: raws.length });
+
+  // The server's shared cache already knows most strings: fetch those in a few big requests,
+  // so only the true misses wait on Mapbox and Jev
+  await Promise.all(
+    chunk(misses, CACHED_BATCH_SIZE).map((batch) =>
+      fetchBatch(batch, true).then(remember, (error) => console.warn('Cache lookup failed', error))
+    )
+  );
+  misses = misses.filter((raw) => !resolved[raw]);
   let done = raws.length - misses.length;
   if (misses.length) onProgress({ done, total: raws.length });
-  const batches = Array.from({ length: Math.ceil(misses.length / BATCH_SIZE) }, (_, i) =>
-    misses.slice(i * BATCH_SIZE, (i + 1) * BATCH_SIZE)
-  );
+
+  const batches = chunk(misses, BATCH_SIZE);
   const worker = async () => {
     for (let batch = batches.shift(); batch; batch = batches.shift()) {
       try {
-        const results = await fetchBatch(batch);
-        await chrome.storage.local.set(
-          Object.fromEntries(batch.map((raw) => [cacheKey(raw), (resolved[raw] = results[raw])]))
-        );
+        await remember(await fetchBatch(batch));
       } catch (error) {
         // Left uncached, so the next open retries them
         console.warn('Could not place locations', batch, error);
