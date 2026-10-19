@@ -214,6 +214,7 @@ const processUser = (u) => {
     screen_name: u.core?.screen_name || u.legacy?.screen_name,
     avatar,
     followers: u.legacy?.followers_count ?? 0,
+    tweet_count: u.legacy?.statuses_count,
     location: u.location?.location || u.legacy?.location || '',
     bio: u.profile_bio?.description || u.legacy?.description || '',
   };
@@ -302,7 +303,7 @@ const fetchFollowingList = async (userId) => {
 // (shared across friends + every list, no duplication). List members are dated in
 // bulk from their lists' feeds; only the rest cost a UserTweets call each, against a
 // ~50-per-15-min bucket.
-const TWEET_DATE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // re-check a user at most weekly
+const TWEET_DATE_TTL_MS = 7 * 24 * 60 * 60 * 1000; // weekly re-check when post counts are unknown
 let enriching = false;
 
 const reportEnrich = (progress) => {
@@ -425,10 +426,20 @@ const processEnrichQueue = async () => {
       chrome.storage.local.set({ pendingEnrich: [] });
 
       const tweetDates = (await readLocalStorage('tweetDates')) || {};
+      // Post counts from the last refresh: a date stays valid until the count moves.
+      const userData = (await readLocalStorage('userData')) || {};
+      const counts = {};
+      for (const u of [
+        ...(userData.friends || []),
+        ...(userData.userListData || []).flatMap((l) => l.users),
+      ])
+        counts[u.id] = u.tweet_count;
       const now = Date.now();
       const todo = [...new Set(pending)].filter((id) => {
         const e = tweetDates[id];
-        return !e || now - new Date(e.fetchedAt).getTime() > TWEET_DATE_TTL_MS;
+        if (!e) return true;
+        if (e.tweet_count != null && counts[id] != null) return e.tweet_count !== counts[id];
+        return now - new Date(e.fetchedAt).getTime() > TWEET_DATE_TTL_MS;
       });
       if (!todo.length) continue;
 
@@ -438,7 +449,7 @@ const processEnrichQueue = async () => {
       const save = (dates) => {
         const fetchedAt = new Date().toISOString();
         for (const [id, last_tweet] of Object.entries(dates)) {
-          tweetDates[id] = { last_tweet, fetchedAt };
+          tweetDates[id] = { last_tweet, fetchedAt, tweet_count: counts[id] };
           if (asked.has(id)) done++;
         }
         chrome.storage.local.set({ tweetDates }); // stream results to the UI live
