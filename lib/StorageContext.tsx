@@ -158,11 +158,7 @@ export const StorageProvider = ({ children }) => {
             duration: 5000,
             dismissible: true,
           });
-          updateLocalStorage({
-            lastAutoRefresh: {},
-            userData: null,
-          });
-          dispatch({ type: 'SET_USER_DATA', payload: null });
+          updateLocalStorage({ lastAutoRefresh: {} });
 
           // Force a refresh by creating a new Twitter tab
           chrome.tabs.query({ currentWindow: true }, function (tabs) {
