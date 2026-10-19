@@ -9,7 +9,7 @@ import {
 type SortOption = {
   value: string;
   label: string;
-  sortFn: (a: any, b: any) => number;
+  sortFn?: (a: any, b: any) => number;
 };
 
 type SortSelectProps = {

@@ -2,6 +2,8 @@ import { User } from '@/components/LocationsWrapper';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 import { Badge } from '@/components/ui/badge';
+import { useTweetDatesContext } from '@/lib/StorageContext';
+import { relativeTweetTime, tweetActivityColor } from '@/utils/tweetActivity';
 
 type UserCardProps = {
   user: User;
@@ -13,6 +15,13 @@ export const formatNumber = (num: number) => {
 };
 
 export const UserCard = ({ user, userListData }: UserCardProps) => {
+  const { tweetDates } = useTweetDatesContext();
+  const entry = tweetDates[user.id];
+  // undefined = not fetched yet; { last_tweet: null } = fetched, no recent posts.
+  const lastTweetLabel = entry
+    ? relativeTweetTime(entry.last_tweet) ?? 'no recent posts'
+    : null;
+
   return (
     <div className='bg-gray-700 rounded-lg shadow-lg p-4 hover:bg-gray-600 transition-colors ease-in-out'>
       <a
@@ -46,6 +55,11 @@ export const UserCard = ({ user, userListData }: UserCardProps) => {
           <span className='font-medium text-gray-200'>
             {formatNumber(user.followers)} followers
           </span>
+          {entry && lastTweetLabel && (
+            <span className={`font-medium ${tweetActivityColor(entry.last_tweet)}`}>
+              · last tweet {lastTweetLabel}
+            </span>
+          )}
         </div>
 
         {user.lists.length > 0 && (
