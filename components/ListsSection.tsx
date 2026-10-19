@@ -7,15 +7,15 @@ import {
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { useLocationContext } from '@/lib/LocationContext';
-import { useEnableListsContext } from '@/lib/StorageContext';
+import { excludeList, removeListExclusion, setEnableLists, useStorage } from '@/lib/storage';
 import { Checkbox } from '@/components/ui/checkbox';
 import React from 'react';
 
 export const ListsSection = () => {
   const { userListData } = useLocationContext();
 
-  const { setEnableLists, enableLists, excludedLists, excludeList, removeListExclusion } =
-    useEnableListsContext();
+  const enableLists = useStorage('enableLists');
+  const excludedLists = useStorage('excludedLists');
 
   if (userListData.length === 0) return null;
 

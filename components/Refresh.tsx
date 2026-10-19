@@ -1,31 +1,20 @@
 import { useLocationContext } from '@/lib/LocationContext';
-import { useTwitterHandleContext, useUserDataContext } from '@/lib/StorageContext';
+import { forceRefresh, useStorage } from '@/lib/storage';
 import { LoaderIcon, RefreshCw } from 'lucide-react';
 import React, { useEffect } from 'react';
 import { Button } from './ui/button';
 
 export const Refresh = () => {
-  const userData = useUserDataContext();
+  const userData = useStorage('userData');
   const [refreshing, setRefreshing] = React.useState(true);
 
-  const { twitterHandle, forceRefresh } = useTwitterHandleContext();
+  const twitterHandle = useStorage('twitterHandle');
   const [errorMessage, setErrorMessage] = React.useState('');
-  const [progress, setProgress] = React.useState<any>(null);
+  const progress = useStorage('fetchProgress');
   const { resolveProgress } = useLocationContext();
 
-  useEffect(() => {
-    const handler = (changes: any, area: string) => {
-      if (area === 'local' && changes.fetchProgress) {
-        setProgress(changes.fetchProgress.newValue);
-      }
-    };
-    chrome.storage.onChanged.addListener(handler);
-    chrome.storage.local.get(['fetchProgress'], (r: any) => {
-      if (r.fetchProgress && r.fetchProgress.phase !== 'done') setProgress(r.fetchProgress);
-    });
-    return () => chrome.storage.onChanged.removeListener(handler);
-  }, []);
-
+  // Asks again only when the data changes, not the handle: the X tab reads the handle from
+  // storage, and after a switch this can mount and ask before the new handle reaches it
   useEffect(() => {
     if (!userData) {
       setRefreshing(true);
@@ -60,7 +49,7 @@ export const Refresh = () => {
     } else {
       setRefreshing(false);
     }
-  }, [twitterHandle, userData]);
+  }, [userData]);
 
   const handleForceRefresh = () => {
     setRefreshing(true);

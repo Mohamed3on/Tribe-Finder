@@ -1,6 +1,6 @@
 /* eslint-disable react/display-name */
 import { User, UsersMap } from '@/components/LocationsWrapper';
-import { useEnableListsContext, useUserDataContext } from '@/lib/StorageContext';
+import { useStorage } from '@/lib/storage';
 import { ResolveProgress, resolveUserLocations } from '@/utils/resolveLocations';
 import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 
@@ -45,9 +45,10 @@ export const LocationsProvider: React.FC<{ children: React.ReactNode }> = React.
     const [users, setUsers] = useState<UsersMap>({});
     const [resolveProgress, setResolveProgress] = useState<ResolveProgress | null>(null);
 
-    const userData = useUserDataContext();
+    const userData = useStorage('userData');
 
-    const { enableLists, excludedLists } = useEnableListsContext();
+    const enableLists = useStorage('enableLists');
+    const excludedLists = useStorage('excludedLists');
 
     useEffect(() => {
       if (userData) {
@@ -80,6 +81,9 @@ export const LocationsProvider: React.FC<{ children: React.ReactNode }> = React.
         });
 
         setUsers(usersMap);
+      } else {
+        // Cleared by a handle switch, maybe while this view was showing the old handle's people
+        setUsers({});
       }
     }, [userData, enableLists, excludedLists]);
 

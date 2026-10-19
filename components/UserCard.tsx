@@ -2,7 +2,7 @@ import { User } from '@/components/LocationsWrapper';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 import { Badge } from '@/components/ui/badge';
-import { useTweetDatesContext } from '@/lib/StorageContext';
+import { useStorage } from '@/lib/storage';
 import { relativeTweetTime, tweetActivityColor } from '@/utils/tweetActivity';
 
 type UserCardProps = {
@@ -15,7 +15,7 @@ export const formatNumber = (num: number) => {
 };
 
 export const UserCard = ({ user, userListData }: UserCardProps) => {
-  const { tweetDates } = useTweetDatesContext();
+  const tweetDates = useStorage('tweetDates');
   const entry = tweetDates[user.id];
   // undefined = not fetched yet; { last_tweet: null } = fetched, no recent posts.
   const lastTweetLabel = entry

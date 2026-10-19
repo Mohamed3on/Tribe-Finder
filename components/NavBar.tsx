@@ -1,11 +1,9 @@
 import React from 'react';
 import { RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
-import { useTwitterHandleContext } from '@/lib/StorageContext';
+import { forceRefresh } from '@/lib/storage';
 
 export const NavBar = ({ userName }: { userName: string }) => {
-  const { forceRefresh } = useTwitterHandleContext();
-
   return (
     <div className='sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 mb-4'>
       <nav className='flex justify-between items-center p-4'>

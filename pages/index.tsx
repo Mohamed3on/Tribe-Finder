@@ -4,18 +4,14 @@ import { LocationDetails } from '@/components/LocationDetails'; // Import Locati
 import { LocationsWrapper } from '@/components/LocationsWrapper';
 import { LocationsProvider } from '@/lib/LocationContext';
 import { NavBar } from '@/components/NavBar';
-import {
-  StorageProvider,
-  useEnableListsContext,
-  useTwitterHandleContext,
-} from '@/lib/StorageContext';
+import { setEnableLists, setTwitterHandle, useStorage } from '@/lib/storage';
 
 export function Home() {
   const [route, setRoute] = useState('');
 
-  const { twitterHandle, setTwitterHandle } = useTwitterHandleContext();
+  const twitterHandle = useStorage('twitterHandle');
 
-  const { enableLists, setEnableLists } = useEnableListsContext();
+  const enableLists = useStorage('enableLists');
 
   useEffect(() => {
     const handleHashChange = () => {
@@ -82,6 +78,9 @@ export function Home() {
     setEnableLists(enableLists);
   };
 
+  // Nothing until storage is read, so returning users don't see the settings form flash
+  if (twitterHandle === undefined) return null;
+
   return (
     <div className='bg-background relative flex min-h-screen flex-col'>
       <NavBar userName={twitterHandle ? `@${twitterHandle}` : 'Config'} />
@@ -90,10 +89,4 @@ export function Home() {
   );
 }
 
-const WithStorage = () => (
-  <StorageProvider>
-    <Home />
-  </StorageProvider>
-);
-
-export default WithStorage;
+export default Home;

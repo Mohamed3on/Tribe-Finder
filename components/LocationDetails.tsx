@@ -1,6 +1,6 @@
 import { User } from '@/components/LocationsWrapper';
 import { useLocationContext } from '@/lib/LocationContext';
-import { useTweetDatesContext } from '@/lib/StorageContext';
+import { enrichUsers, useStorage } from '@/lib/storage';
 import { daysSinceTweet } from '@/utils/tweetActivity';
 import { Wrapper } from '@/components/LocationList';
 import { useState, useMemo, useEffect } from 'react';
@@ -25,7 +25,7 @@ const sortOptions = [
 
 export const LocationDetails = ({ locationName }: { locationName?: string }) => {
   const { locations, userListData } = useLocationContext();
-  const { tweetDates, enrichUsers } = useTweetDatesContext();
+  const tweetDates = useStorage('tweetDates');
   const [sortBy, setSortBy] = useState<string>(sortOptions[0].value);
 
   const usersObject = locations[locationName];
@@ -37,7 +37,7 @@ export const LocationDetails = ({ locationName }: { locationName?: string }) => 
   // Lazily fetch last-tweet dates for just the people in this location.
   useEffect(() => {
     enrichUsers(users.map((u) => u.id));
-  }, [users, enrichUsers]);
+  }, [users]);
 
   const sortedUsers = useMemo(() => {
     if (sortBy.startsWith('lasttweet')) {
