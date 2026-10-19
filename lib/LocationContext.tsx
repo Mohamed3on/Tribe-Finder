@@ -31,7 +31,6 @@ export type LocationsContextProps = {
 
   numberOfFriends?: number;
   locationToTypeMapping?: { [key: string]: string };
-  cityToCountryMapping?: { [key: string]: string };
   resolveProgress?: ResolveProgress | null;
 };
 
@@ -87,8 +86,7 @@ export const LocationsProvider: React.FC<{ children: React.ReactNode }> = React.
     const setDataWithProcessedLocations = useCallback(
       (
         locations: { [key: string]: UsersMap },
-        locationToTypeMapping: { [key: string]: string },
-        cityToCountryMapping: { [key: string]: string }
+        locationToTypeMapping: { [key: string]: string }
       ) => {
         const sortedData = Object.entries(locations)
           .sort(([, a], [, b]) => Object.keys(b).length - Object.keys(a).length)
@@ -102,7 +100,6 @@ export const LocationsProvider: React.FC<{ children: React.ReactNode }> = React.
           userListData: userData?.['userListData'] || [],
           numberOfFriends: Object.keys(users).length,
           locationToTypeMapping,
-          cityToCountryMapping,
         });
       },
       [userData, users]
@@ -114,20 +111,12 @@ export const LocationsProvider: React.FC<{ children: React.ReactNode }> = React.
       const fetchData = async () => {
         try {
           if (Object.keys(users).length > 0) {
-            const {
-              mappedLocations: newLocations,
-              locationToTypeMapping,
-              cityToCountryMapping,
-            } = await resolveUserLocations(
+            const { mappedLocations: newLocations, locationToTypeMapping } = await resolveUserLocations(
               Object.values(users),
               (progress) => isMounted && setResolveProgress(progress)
             ).finally(() => isMounted && setResolveProgress(null));
             if (newLocations && isMounted) {
-              setDataWithProcessedLocations(
-                newLocations,
-                locationToTypeMapping,
-                cityToCountryMapping
-              );
+              setDataWithProcessedLocations(newLocations, locationToTypeMapping);
             }
           } else {
             setData({

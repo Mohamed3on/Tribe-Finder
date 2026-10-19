@@ -6,7 +6,7 @@ import { LocationMapping } from '@/utils/locationTypes';
 type Resolution = { places: LocationMapping[]; isPlace: number };
 export type ResolveProgress = { done: number; total: number };
 
-const RESOLVE_URL = 'https://location-coords-cache.vercel.app/api/resolve';
+const RESOLVE_URL = 'https://location-coords-cache.mohamed3on.workers.dev/api/resolve';
 const BATCH_SIZE = 40;
 const CACHED_BATCH_SIZE = 150;
 const PARALLEL = 3;
@@ -88,7 +88,6 @@ export const resolveUserLocations = async (
   // Everyone is listed under each level of their place: city, region and country
   const mappedLocations: { [key: string]: UsersMap } = {};
   const locationToTypeMapping: { [key: string]: string } = {};
-  const cityToCountryMapping: { [key: string]: string } = {};
   for (const raw of raws) {
     for (const { addressParts } of resolved[raw]?.places ?? []) {
       const country = addressParts[addressParts.length - 1].text;
@@ -96,7 +95,6 @@ export const resolveUserLocations = async (
         const name = sameNamedPlaces.test(text) ? `${text}, ${country}` : text;
         const type = placeType === 'place' ? 'city' : placeType;
         if (!locationToTypeMapping[name] || type === 'city') locationToTypeMapping[name] = type;
-        if (type === 'city') cityToCountryMapping[name] = country;
         mappedLocations[name] = { ...mappedLocations[name], ...usersByRaw[raw] };
       }
     }
@@ -108,6 +106,5 @@ export const resolveUserLocations = async (
       Object.entries(mappedLocations).filter(([, users]) => Object.keys(users).length > 1)
     ),
     locationToTypeMapping,
-    cityToCountryMapping,
   };
 };

@@ -1,7 +1,6 @@
 import { User } from '@/components/LocationsWrapper';
 import { useLocationContext } from '@/lib/LocationContext';
 import { Wrapper } from '@/components/LocationList';
-import Sunshine from '@/components/ui/Sunshine';
 import { useState, useMemo } from 'react';
 import { SortSelect } from './SortSelect';
 import { UserCard } from './UserCard';
@@ -43,7 +42,6 @@ export const LocationDetails = ({ locationName }: { locationName?: string }) => 
     <Wrapper>
       <div className='mb-6 space-y-4'>
         <BackButton />
-        <Sunshine locationName={locationName} />
       </div>
 
       <div className='flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8'>
